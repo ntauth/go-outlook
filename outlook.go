@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -49,6 +51,7 @@ type Client struct {
 	appSecret   string
 	redirectURI string
 	scope       string
+	tokenSource oauth2.TokenSource
 }
 
 // ClientOpt functions to configure options on a Client.
@@ -86,6 +89,13 @@ func SetClientScope(scope string) ClientOpt {
 func SetClientMediaType(mType string) ClientOpt {
 	return func(c *Client) {
 		c.mediaType = mType
+	}
+}
+
+// SetClientTokenSource returns a ClientOpt function which sets the clients tokenSource.
+func SetClientTokenSource(tokenSource oauth2.TokenSource) ClientOpt {
+	return func(c *Client) {
+		c.tokenSource = tokenSource
 	}
 }
 
