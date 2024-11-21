@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 )
 
 // Session manages communication to microsoft's graph api as an authenticated user.
@@ -16,15 +15,17 @@ type Session struct {
 }
 
 // NewSession returns a new instance of a Session.
-func NewSession(client *Client, refreshToken string) (*Session, error) {
+func NewSession(client *Client) (*Session, error) {
+	token, err := client.tokenSource.Token()
+	if err != nil {
+		return nil, err
+	}
+
 	session := &Session{
 		client:       client,
 		basePath:     "/me",
-		refreshToken: refreshToken,
-	}
-
-	if err := session.refreshAccessToken(); err != nil {
-		return nil, err
+		accessToken:  token.AccessToken,
+		refreshToken: token.RefreshToken,
 	}
 
 	return session, nil
@@ -91,33 +92,4 @@ func (session *Session) Folders() *FolderService {
 // Messages returns an instance of a MessageService using this session.
 func (session *Session) Messages() *MessageService {
 	return NewMessageService(session)
-}
-
-func (session *Session) refreshAccessToken() error {
-	body := url.Values{}
-	body.Set("client_id", session.client.appID)
-	body.Set("client_secret", session.client.appSecret)
-	body.Set("refresh_token", session.refreshToken)
-	body.Set("redirect_uri", session.client.redirectURI)
-	body.Set("scope", session.client.scope)
-	body.Set("grant_type", "refresh_token")
-
-	// I suppose it's possible for this to change the media type of other requests being made at essentially the same time, will update sometime
-	session.client.SetMediaType("application/x-www-form-urlencoded")
-
-	req, err := session.client.NewRequest(context.Background(), http.MethodPost, DefaultOAuthTokenURL, body)
-	if err != nil {
-		return err
-	}
-
-	session.client.SetMediaType(mediaType)
-
-	var tokenRes RefreshTokenResponse
-	if _, err := session.client.Do(context.Background(), req, &tokenRes); err != nil {
-		return err
-	}
-
-	session.accessToken = tokenRes.AccessToken
-
-	return nil
 }

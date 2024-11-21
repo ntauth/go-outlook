@@ -47,43 +47,11 @@ type Client struct {
 	baseURL     *url.URL
 	userAgent   string
 	mediaType   string
-	appID       string
-	appSecret   string
-	redirectURI string
-	scope       string
 	tokenSource oauth2.TokenSource
 }
 
 // ClientOpt functions to configure options on a Client.
 type ClientOpt func(*Client)
-
-// SetClientAppID returns a ClientOpt function which set the clients AppID.
-func SetClientAppID(appID string) ClientOpt {
-	return func(c *Client) {
-		c.appID = appID
-	}
-}
-
-// SetClientAppSecret returns a ClientOpt function which set the clients App Secret.
-func SetClientAppSecret(secret string) ClientOpt {
-	return func(c *Client) {
-		c.appSecret = secret
-	}
-}
-
-// SetClientRedirectURI returns a ClientOpt function which set the clients redirectURI.
-func SetClientRedirectURI(uri string) ClientOpt {
-	return func(c *Client) {
-		c.redirectURI = uri
-	}
-}
-
-// SetClientScope returns a ClientOpt function which set the clients auth scope.
-func SetClientScope(scope string) ClientOpt {
-	return func(c *Client) {
-		c.scope = scope
-	}
-}
 
 // SetClientMediaType returns a ClientOpt function which sets the clients mediaType.
 func SetClientMediaType(mType string) ClientOpt {
@@ -109,37 +77,12 @@ func NewClient(opts ...ClientOpt) (*Client, error) {
 		client:    DefaultClient,
 		baseURL:   baseURL,
 		userAgent: DefaultUserAgent,
-		scope:     DefaultAuthScopes,
 		mediaType: mediaType,
 	}
 	for _, opt := range opts {
 		opt(client)
 	}
 	return client, nil
-}
-
-// SetAppID fluent configuration of the client's microsoft AppID.
-func (client *Client) SetAppID(appID string) *Client {
-	client.appID = appID
-	return client
-}
-
-// SetAppSecret fluent configuration of the client's microsoft App Secret.
-func (client *Client) SetAppSecret(secret string) *Client {
-	client.appSecret = secret
-	return client
-}
-
-// SetRedirectURI fluent configuration of the client's microsoft RedirectURI.
-func (client *Client) SetRedirectURI(uri string) *Client {
-	client.redirectURI = uri
-	return client
-}
-
-// SetScope fluent configuration of the client's microsoft auth Scope.
-func (client *Client) SetScope(scope string) *Client {
-	client.scope = scope
-	return client
 }
 
 // SetMediaType fluent configuration of the client's mediaType.
@@ -175,7 +118,7 @@ func (client *Client) NewRequest(ctx context.Context, method, path string, body 
 					return nil, err
 				}
 			} else {
-				return nil, fmt.Errorf("Body must be of type url.Values when Content-Type is set to application/x-www-form-urlencoded")
+				return nil, fmt.Errorf("body must be of type url.Values when Content-Type is set to application/x-www-form-urlencoded")
 			}
 		}
 	}
@@ -228,11 +171,12 @@ func (client *Client) Do(ctx context.Context, req *http.Request, v interface{}) 
 	return response, err
 }
 
-// NewSession returns a new instance of a Session using this client and the given refreshToken.
-func (client *Client) NewSession(refreshToken string) (*Session, error) {
-	session, err := NewSession(client, refreshToken)
+// NewSession returns a new instance of a Session using this client.
+func (client *Client) NewSession() (*Session, error) {
+	session, err := NewSession(client)
 	if err != nil {
 		return nil, err
 	}
+
 	return session, nil
 }
