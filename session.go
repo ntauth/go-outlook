@@ -18,6 +18,10 @@ type Session struct {
 
 // NewSession returns a new instance of a Session.
 func NewSession(client *Client) (*Session, error) {
+	if client.tokenSource == nil {
+		return nil, fmt.Errorf("no token source provided")
+	}
+
 	token, err := client.tokenSource.Token()
 	if err != nil {
 		return nil, err
