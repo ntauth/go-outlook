@@ -2,6 +2,7 @@ package outlook
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -101,4 +102,33 @@ func (session *Session) Folders() *FolderService {
 // Messages returns an instance of a MessageService using this session.
 func (session *Session) Messages() *MessageService {
 	return NewMessageService(session)
+}
+
+func (s *Session) Send(ctx context.Context, message *Message) error {
+	endpoint := "/sendMail"
+
+	body := map[string]interface{}{
+		"message": message,
+	}
+
+	// This method does not return any body, so we need to check for errors in the response
+	resp, err := s.query(ctx, http.MethodPost, endpoint, nil, body, nil)
+	if err != nil {
+		return err
+	}
+
+	type APIError struct {
+		Message string `json:"message"`
+	}
+
+	// Check for errors in the response
+	if resp.StatusCode != http.StatusAccepted {
+		var apiError APIError
+		if err := json.NewDecoder(resp.Body).Decode(&apiError); err != nil {
+			return fmt.Errorf("failed to send email: status %d: Failed to parse error response: %w", resp.StatusCode, err)
+		}
+		return fmt.Errorf("failed to send email: status %d: %s", resp.StatusCode, apiError.Message)
+	}
+
+	return nil
 }
