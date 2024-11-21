@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // Session manages communication to microsoft's graph api as an authenticated user.
@@ -31,15 +32,23 @@ func NewSession(client *Client) (*Session, error) {
 	return session, nil
 }
 
-func (session *Session) query(ctx context.Context, method, url string, params map[string]interface{}, data interface{}, result interface{}) (*http.Response, error) {
+func (session *Session) query(ctx context.Context, method, urlPath string, params map[string]interface{}, data interface{}, result interface{}) (*http.Response, error) {
 	var queryString string
 	if params != nil {
 		queryString = createQueryString(params)
 	}
 
-	path := fmt.Sprintf("%s%s%s", session.basePath, url, queryString)
+	parsedBasePath, err := url.Parse(session.basePath)
+	if err != nil {
+		return nil, err
+	}
 
-	req, err := session.client.NewRequest(ctx, method, path, data)
+	path := parsedBasePath.JoinPath(urlPath)
+	if queryString != "" {
+		path.RawQuery = queryString
+	}
+
+	req, err := session.client.NewRequest(ctx, method, path.String(), data)
 	if err != nil {
 		return nil, err
 	}
